@@ -519,7 +519,7 @@
                     const sel = l === e.level;
                     const cls = sel
                       ? 'text-white ' + LEVELS[l].fill.split(' ')[0] + ' ring-2 ring-offset-2 ' + LEVELS[l].ring
-                      : 'text-neutral-600 bg-neutral-200';
+                      : 'text-neutral-600 bg-white border border-neutral-200';
                     return html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
                       class=${'h-11 w-11 grid place-items-center rounded-full text-xl transition ' + cls}>
                       <i class=${'iconoir-' + LEVELS[l].icon}></i>
