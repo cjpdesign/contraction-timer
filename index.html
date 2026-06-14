@@ -76,9 +76,9 @@
     const HOUR = 60 * 60 * 1000;
 
     const LEVELS = {
-      1: { label: 'Mild',     fill: 'bg-amber-400 border-amber-400',   ring: 'ring-amber-400',   icon: 'emoji-look-up' },
+      1: { label: 'Mild',     fill: 'bg-amber-500 border-amber-500',   ring: 'ring-amber-400',   icon: 'emoji-look-up' },
       2: { label: 'Moderate', fill: 'bg-orange-500 border-orange-500', ring: 'ring-orange-500',  icon: 'emoji-really' },
-      3: { label: 'Strong',   fill: 'bg-red-500 border-red-500',       ring: 'ring-red-500',     icon: 'emoji-sad' },
+      3: { label: 'Strong',   fill: 'bg-red-600 border-red-600',       ring: 'ring-red-500',     icon: 'emoji-sad' },
     };
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const INFO = {
@@ -514,9 +514,11 @@
               </div>
               <div>
                 <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
-                <div class="flex items-center gap-5">
+                <div class="flex items-center gap-4">
                   ${[1, 2, 3].map((l) => html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
-                    class=${'h-9 w-9 rounded-full border-2 transition ' + LEVELS[l].fill + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : '')}></button>`)}
+                    class=${'h-11 w-11 grid place-items-center rounded-full text-white text-xl transition ' + LEVELS[l].fill.split(' ')[0] + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : ' opacity-40')}>
+                    <i class=${'iconoir-' + LEVELS[l].icon}></i>
+                  </button>`)}
                 </div>
               </div>
             </div>
