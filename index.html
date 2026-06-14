@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#f5f5f5" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f5f5" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0a0a" />
   <title>Contraction Timer</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./logo.png" />
@@ -28,7 +29,19 @@
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
-          colors: { rose: { 50: '#fff1f3', 100: '#ffe4e8', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' } },
+          colors: {
+            rose: { 50: '#fff1f3', 100: '#ffe4e8', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' },
+            // Semantic theme tokens — values come from CSS variables that flip in dark mode.
+            base:    'rgb(var(--c-base) / <alpha-value>)',     // page background
+            card:    'rgb(var(--c-card) / <alpha-value>)',     // raised cards / panels
+            surface: 'rgb(var(--c-surface) / <alpha-value>)',  // subtle insets / groups / hovers
+            line:    'rgb(var(--c-line) / <alpha-value>)',     // borders / dividers
+            track:   'rgb(var(--c-track) / <alpha-value>)',    // progress-bar track
+            ink:     'rgb(var(--c-ink) / <alpha-value>)',      // primary text
+            body:    'rgb(var(--c-body) / <alpha-value>)',     // secondary text
+            muted:   'rgb(var(--c-muted) / <alpha-value>)',    // tertiary text
+            faint:   'rgb(var(--c-faint) / <alpha-value>)',    // faint text / icons
+          },
         },
       },
     };
@@ -36,17 +49,33 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <style>
+    /* ---- Theme tokens (light) ---- */
+    :root {
+      color-scheme: light;
+      --c-base: 245 245 245; --c-card: 255 255 255; --c-surface: 250 250 250;
+      --c-line: 229 229 229; --c-track: 229 229 229;
+      --c-ink: 23 23 23; --c-body: 64 64 64; --c-muted: 115 115 115; --c-faint: 163 163 163;
+    }
+    /* ---- Theme tokens (dark, follows system) ---- */
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --c-base: 10 10 10; --c-card: 23 23 23; --c-surface: 38 38 38;
+        --c-line: 64 64 64; --c-track: 64 64 64;
+        --c-ink: 250 250 250; --c-body: 229 229 229; --c-muted: 163 163 163; --c-faint: 115 115 115;
+      }
+    }
     html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     body, .tnum { font-variant-numeric: tabular-nums; }
     /* Tint native date/time/number controls to match the app's rose accent (instead of browser blue). */
-    input { accent-color: #f43f6b; color-scheme: light; }
-    /* Custom-styled date/time select controls */
+    input { accent-color: #f43f6b; }
+    /* Custom-styled date/time select controls (themed via tokens) */
     .picker {
       -webkit-appearance: none; appearance: none;
       width: 100%; text-align: center;
-      font-size: 1rem; color: #262626;
-      background-color: #fff;
-      border: 1px solid #e5e5e5; border-radius: 0.75rem;
+      font-size: 1rem; color: rgb(var(--c-ink));
+      background-color: rgb(var(--c-card));
+      border: 1px solid rgb(var(--c-line)); border-radius: 0.75rem;
       padding: 0.625rem 1.625rem 0.625rem 0.625rem;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23a3a3a3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat; background-position: right 0.4rem center;
@@ -58,7 +87,7 @@
     .row-in { animation: rowIn .25s ease; }
   </style>
 </head>
-<body class="min-h-screen bg-neutral-100 text-neutral-800 font-sans antialiased">
+<body class="min-h-screen bg-base text-ink font-sans antialiased">
   <div id="app"></div>
 
   <script>
@@ -87,11 +116,11 @@
       count:    { title: 'Timeline',  body: 'This steady pattern (5 minutes apart, 1 minute long) has been consistent and continuous for a full 60 minutes without stopping.' },
     };
 
-    const NUM_CLS  = 'tnum w-full rounded-xl border border-neutral-200 px-2 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
-    const TIME_CLS = 'tnum flex-1 w-full rounded-xl border border-neutral-200 px-1 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
+    const NUM_CLS  = 'tnum w-full rounded-xl border border-line px-2 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
+    const TIME_CLS = 'tnum flex-1 w-full rounded-xl border border-line px-1 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
     const BTN_PRIMARY = 'rounded-full bg-rose-500 hover:bg-rose-600 active:scale-[.99] text-white font-bold text-lg py-4 shadow-sm transition';
-    const BTN_OUTLINE = 'rounded-full border border-neutral-200 text-neutral-700 font-bold text-lg py-4 hover:bg-neutral-50 active:scale-[.99] transition';
-    const ICON_BTN = 'grid place-items-center rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition';
+    const BTN_OUTLINE = 'rounded-full border border-line text-body font-bold text-lg py-4 hover:bg-surface active:scale-[.99] transition';
+    const ICON_BTN = 'grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-surface transition';
 
     // ---- Persistence ----
     function load() {
@@ -176,16 +205,16 @@
           ${children}
         </div>`;
     }
-    const PANEL = 'relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl border border-neutral-200 shadow-xl';
+    const PANEL = 'relative w-full max-w-md bg-card rounded-t-3xl sm:rounded-3xl border border-line shadow-xl';
     const PANEL_PAD = 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));';
 
     function SettingsRow({ icon, title, sub, danger, onClick }) {
-      const tone = danger ? 'border-rose-200 hover:bg-rose-50' : 'border-neutral-200 hover:bg-neutral-50';
+      const tone = danger ? 'border-rose-200 hover:bg-rose-50' : 'border-line hover:bg-surface';
       return html`<button onClick=${onClick} class=${'w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ' + tone}>
-        <i class=${'iconoir-' + icon + ' text-xl shrink-0 ' + (danger ? 'text-rose-600' : 'text-neutral-600')}></i>
+        <i class=${'iconoir-' + icon + ' text-xl shrink-0 ' + (danger ? 'text-rose-600' : 'text-body')}></i>
         <div class="flex-1 min-w-0">
-          <div class=${'text-sm font-semibold ' + (danger ? 'text-rose-700' : 'text-neutral-800')}>${title}</div>
-          <div class=${'text-xs ' + (danger ? 'text-rose-600/80' : 'text-neutral-500')}>${sub}</div>
+          <div class=${'text-sm font-semibold ' + (danger ? 'text-rose-700' : 'text-ink')}>${title}</div>
+          <div class=${'text-xs ' + (danger ? 'text-rose-600/80' : 'text-muted')}>${sub}</div>
         </div>
       </button>`;
     }
@@ -403,21 +432,21 @@
           const pct = (Math.max(0, Math.min(1, ratio || 0)) * 100).toFixed(0);
           return html`<div class="relative px-4 py-3.5">
             <button aria-label=${'About ' + label} onClick=${() => this.setState({ modal: 'info', infoKey: key })}
-              class="absolute top-1.5 right-1.5 grid place-items-center h-6 w-6 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition">
+              class="absolute top-1.5 right-1.5 grid place-items-center h-6 w-6 rounded-full text-faint hover:text-ink hover:bg-surface transition">
               <i class="iconoir-info-circle text-sm"></i>
             </button>
             <div class="text-[11px] leading-tight pr-5 whitespace-nowrap">${label}</div>
             <div class="tnum text-base sm:text-xl font-bold mt-0.5 whitespace-nowrap">${value}</div>
             <div class="mt-3">
-              <div class="h-1.5 rounded-full bg-neutral-200 overflow-hidden">
-                <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-emerald-500' : 'bg-neutral-600')} style=${'width:' + pct + '%'}></div>
+              <div class="h-1.5 rounded-full bg-track overflow-hidden">
+                <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-emerald-500' : 'bg-body')} style=${'width:' + pct + '%'}></div>
               </div>
-              <div class="text-[10px] text-neutral-500 leading-tight mt-1.5">${hint}</div>
+              <div class="text-[10px] text-muted leading-tight mt-1.5">${hint}</div>
             </div>
           </div>`;
         };
-        return html`<section class="rounded-2xl bg-white border border-neutral-200/70 overflow-hidden">
-          <div class="grid grid-cols-3 divide-x divide-neutral-200/70">
+        return html`<section class="rounded-2xl bg-card border border-line/70 overflow-hidden">
+          <div class="grid grid-cols-3 divide-x divide-line/70">
             ${col('freq', 'Frequency', st.avgGap != null ? fmtGap(st.avgGap) : '—', '≤5 min apart', st.avgGap != null ? (5 * 60000) / st.avgGap : 0, gapMet)}
             ${col('duration', 'Duration', st.avgDur != null ? fmtDur(st.avgDur) : '—', '1+ min long', st.avgDur != null ? st.avgDur / 60000 : 0, durMet)}
             ${col('count', 'Timeline', String(st.count), '1+ hour', st.span / HOUR, spanMet)}
@@ -429,9 +458,9 @@
         const cs = this.state.contractions;
         if (!cs.length) {
           return html`<section>
-            <div class="rounded-2xl border border-dashed border-neutral-200 bg-white/50 py-12 text-center">
-              <i class="iconoir-hourglass text-3xl text-neutral-500"></i>
-              <p class="text-sm text-neutral-500 mt-2">No contractions yet.<br/>Tap start when one begins.</p>
+            <div class="rounded-2xl border border-dashed border-line bg-card/50 py-12 text-center">
+              <i class="iconoir-hourglass text-3xl text-muted"></i>
+              <p class="text-sm text-muted mt-2">No contractions yet.<br/>Tap start when one begins.</p>
             </div>
           </section>`;
         }
@@ -440,20 +469,20 @@
         cs.forEach((c, i) => {
           const day = dayKey(c.start);
           if (day !== prevDay) {
-            nodes.push(html`<li key=${'d' + day} class=${'px-1 pb-1 text-xs font-semibold text-neutral-500' + (prevDay === null ? '' : ' pt-3')}>${fmtDay(c.start)}</li>`);
+            nodes.push(html`<li key=${'d' + day} class=${'px-1 pb-1 text-xs font-semibold text-muted' + (prevDay === null ? '' : ' pt-3')}>${fmtDay(c.start)}</li>`);
             prevDay = day;
           }
           const older = cs[i + 1];
           const cfg = LEVELS[c.intensity] || LEVELS[1];
           const num = String(cs.length - i).padStart(2, '0');
-          nodes.push(html`<li key=${'c' + c.start + '-' + i} class="row-in flex items-center gap-3 rounded-2xl bg-white border border-neutral-200/70 px-4 py-3">
-            <span class="tnum text-xs font-semibold text-neutral-500 shrink-0">${num}</span>
+          nodes.push(html`<li key=${'c' + c.start + '-' + i} class="row-in flex items-center gap-3 rounded-2xl bg-card border border-line/70 px-4 py-3">
+            <span class="tnum text-xs font-semibold text-muted shrink-0">${num}</span>
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
-                <span class="tnum font-semibold text-neutral-900">${fmtDur(c.end - c.start)}</span>
+                <span class="tnum font-semibold text-ink">${fmtDur(c.end - c.start)}</span>
                 <span class=${'h-2 w-2 rounded-full border shrink-0 ' + cfg.fill}></span>
               </div>
-              <div class="text-xs text-neutral-500 mt-0.5">${fmtTime(c.start)}</div>
+              <div class="text-xs text-muted mt-0.5">${fmtTime(c.start)}</div>
             </div>
             <div class="flex items-center shrink-0 -mr-1">
               <button onClick=${() => this.openEdit(i)} class=${'h-8 w-8 ' + ICON_BTN}><i class="iconoir-edit-pencil text-lg"></i></button>
@@ -462,7 +491,7 @@
           </li>`);
           if (older) {
             nodes.push(html`<li key=${'g' + c.start} class="flex items-center justify-center px-3">
-              <span class="tnum text-[11px] font-medium text-neutral-500">${fmtGap(c.start - older.start)}</span>
+              <span class="tnum text-[11px] font-medium text-muted">${fmtGap(c.start - older.start)}</span>
             </li>`);
           }
         });
@@ -476,13 +505,13 @@
           <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
             <div class="flex items-center justify-between mb-5">
               <h3 class="text-base font-bold tracking-tight">${e.isNew ? 'Add contraction' : 'Edit contraction'}</h3>
-              <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+              <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-xmark text-xl"></i></button>
             </div>
 
-            <div class="rounded-2xl border border-neutral-200/70 bg-neutral-50 p-4 space-y-3 mb-3">
+            <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3 mb-3">
               <div>
                 <div class="flex items-center justify-between mb-1.5">
-                  <label class="text-xs font-medium text-neutral-500">Date</label>
+                  <label class="text-xs font-medium text-muted">Date</label>
                   <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition">Today</button>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
@@ -492,34 +521,34 @@
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-medium text-neutral-500 mb-1.5">Time</label>
+                <label class="block text-xs font-medium text-muted mb-1.5">Time</label>
                 <div class="flex items-center gap-1.5">
                   <input type="number" min="1" max="12" inputmode="numeric" class=${TIME_CLS} value=${e.hour} onInput=${up('hour')} />
-                  <span class="text-sm font-semibold text-neutral-400">:</span>
+                  <span class="text-sm font-semibold text-faint">:</span>
                   <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.minute} onInput=${up('minute')} />
-                  <span class="text-sm font-semibold text-neutral-400">:</span>
+                  <span class="text-sm font-semibold text-faint">:</span>
                   <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.second} onInput=${up('second')} />
                   <select class="picker flex-1" value=${e.ampm} onChange=${up('ampm')}><option value="AM">AM</option><option value="PM">PM</option></select>
                 </div>
               </div>
             </div>
 
-            <div class="rounded-2xl border border-neutral-200/70 bg-neutral-50 p-4 space-y-3 mb-6">
+            <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3 mb-6">
               <div>
-                <label class="block text-xs font-medium text-neutral-500 mb-1.5">Duration</label>
+                <label class="block text-xs font-medium text-muted mb-1.5">Duration</label>
                 <div class="flex items-center gap-2">
-                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" inputmode="numeric" class=${NUM_CLS} value=${e.durMin} onInput=${up('durMin')} /><span class="text-sm text-neutral-500">min</span></div>
-                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" max="59" inputmode="numeric" class=${NUM_CLS} value=${e.durSec} onInput=${up('durSec')} /><span class="text-sm text-neutral-500">sec</span></div>
+                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" inputmode="numeric" class=${NUM_CLS} value=${e.durMin} onInput=${up('durMin')} /><span class="text-sm text-muted">min</span></div>
+                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" max="59" inputmode="numeric" class=${NUM_CLS} value=${e.durSec} onInput=${up('durSec')} /><span class="text-sm text-muted">sec</span></div>
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
+                <label class="block text-xs font-medium text-muted mb-2">Intensity</label>
                 <div class="flex items-center gap-4">
                   ${[1, 2, 3].map((l) => {
                     const sel = l === e.level;
                     const cls = sel
                       ? 'text-white ' + LEVELS[l].fill.split(' ')[0] + ' ring-2 ring-offset-2 ' + LEVELS[l].ring
-                      : 'text-neutral-600 bg-white border border-neutral-200';
+                      : 'text-body bg-card border border-line';
                     return html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
                       class=${'h-11 w-11 grid place-items-center rounded-full text-xl transition ' + cls}>
                       <i class=${'iconoir-' + LEVELS[l].icon}></i>
@@ -540,7 +569,7 @@
           <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-bold tracking-tight">Settings</h3>
-              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-xmark text-xl"></i></button>
             </div>
             <div class="space-y-2">
               <${SettingsRow} icon="upload" title="Export data" sub="Save a backup file or share it" onClick=${this.exportData} />
@@ -561,29 +590,29 @@
           <div class=${PANEL + ' flex flex-col max-h-[85vh]'}>
             <div class="flex items-center justify-between p-6 pb-3 shrink-0">
               <h3 class="text-base font-bold tracking-tight">Archived sessions</h3>
-              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-xmark text-xl"></i></button>
             </div>
             <div class="overflow-y-auto px-6 pb-6 space-y-5" style=${PANEL_PAD}>
               ${!groups.length
-                ? html`<p class="text-sm text-neutral-500 text-center py-8">No archived sessions yet.</p>`
+                ? html`<p class="text-sm text-muted text-center py-8">No archived sessions yet.</p>`
                 : groups.map((g) => {
                     const items = [...g.items].sort((a, b) => b.start - a.start);
                     return html`<div key=${g.id}>
                       <div class="flex items-center justify-between mb-2">
-                        <div class="text-sm font-semibold text-neutral-700">${fmtArchiveDate(g.archivedAt)}</div>
+                        <div class="text-sm font-semibold text-body">${fmtArchiveDate(g.archivedAt)}</div>
                         <div class="flex items-center gap-1.5">
-                          <span class="text-xs text-neutral-400">${g.items.length} total</span>
+                          <span class="text-xs text-faint">${g.items.length} total</span>
                           <button aria-label="Delete this archived group" onClick=${() => this.deleteArchive(g.id)} class=${'h-7 w-7 ' + ICON_BTN}><i class="iconoir-trash text-base"></i></button>
                         </div>
                       </div>
                       <div class="space-y-1.5">
                         ${items.map((c, i) => {
                           const color = (LEVELS[c.intensity] || LEVELS[1]).fill.split(' ')[0];
-                          return html`<div key=${c.start} class="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2">
-                            <span class="tnum text-xs font-semibold text-neutral-400 shrink-0">${String(items.length - i).padStart(2, '0')}</span>
-                            <span class="tnum font-semibold text-neutral-900 flex-1">${fmtDur(c.end - c.start)}</span>
+                          return html`<div key=${c.start} class="flex items-center gap-3 rounded-xl bg-surface px-3 py-2">
+                            <span class="tnum text-xs font-semibold text-faint shrink-0">${String(items.length - i).padStart(2, '0')}</span>
+                            <span class="tnum font-semibold text-ink flex-1">${fmtDur(c.end - c.start)}</span>
                             <span class=${'h-2 w-2 rounded-full shrink-0 ' + color}></span>
-                            <span class="text-xs text-neutral-500 shrink-0">${fmtTime(c.start)}</span>
+                            <span class="text-xs text-muted shrink-0">${fmtTime(c.start)}</span>
                           </div>`;
                         })}
                       </div>
@@ -601,9 +630,9 @@
           <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
             <div class="flex items-center justify-between mb-3">
               <h3 class="text-base font-bold tracking-tight">${i.title}</h3>
-              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-xmark text-xl"></i></button>
             </div>
-            <p class="text-sm text-neutral-600 leading-relaxed">${i.body}</p>
+            <p class="text-sm text-body leading-relaxed">${i.body}</p>
           </div>
         <//>`;
       }
@@ -613,7 +642,7 @@
         return html`<${Modal} z="z-50" onClose=${this.closeConfirm}>
           <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
             <h3 class="text-base font-bold tracking-tight">${c.title}</h3>
-            <p class="text-sm text-neutral-500 mt-1.5">${c.message || ''}</p>
+            <p class="text-sm text-muted mt-1.5">${c.message || ''}</p>
             <div class="flex gap-3 mt-6">
               <button onClick=${this.closeConfirm} class=${'flex-1 ' + BTN_OUTLINE}>Cancel</button>
               <button onClick=${() => { const cb = c.onOk; this.closeConfirm(); cb && cb(); }} class=${'flex-1 ' + BTN_PRIMARY}>${c.okLabel || 'Delete'}</button>
@@ -632,11 +661,11 @@
             <header class="flex items-center justify-between">
               <div>
                 <h1 class="text-lg font-bold tracking-tight leading-none">Contraction Timer</h1>
-                <p class="text-xs text-neutral-500 mt-0.5">Track labor, simply</p>
+                <p class="text-xs text-muted mt-0.5">Track labor, simply</p>
               </div>
               <div class="flex items-center">
-                <button title="Add a contraction" onClick=${this.openAdd} class="grid place-items-center h-10 w-9 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"><i class="iconoir-plus text-xl"></i></button>
-                <button title="Settings" onClick=${() => this.setState({ modal: 'settings' })} class="grid place-items-center h-10 w-9 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"><i class="iconoir-settings text-xl"></i></button>
+                <button title="Add a contraction" onClick=${this.openAdd} class="grid place-items-center h-10 w-9 rounded-xl text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-plus text-xl"></i></button>
+                <button title="Settings" onClick=${() => this.setState({ modal: 'settings' })} class="grid place-items-center h-10 w-9 rounded-xl text-muted hover:text-ink hover:bg-surface transition"><i class="iconoir-settings text-xl"></i></button>
               </div>
             </header>
 
@@ -653,12 +682,12 @@
             ${this.renderStats(st)}
             ${this.renderHistory()}
 
-            <p class="text-center text-[11px] text-neutral-500 leading-relaxed">
+            <p class="text-center text-[11px] text-muted leading-relaxed">
               This tool is for tracking only and is not medical advice.<br/>Always follow your provider's guidance.
             </p>
           </div>`,
 
-          html`<div class="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/65" style="padding-bottom: env(safe-area-inset-bottom);">
+          html`<div class="fixed inset-x-0 bottom-0 z-20 border-t border-line/70 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/65" style="padding-bottom: env(safe-area-inset-bottom);">
             <div class="mx-auto max-w-md px-4 py-3 flex items-center gap-3">
               <button onClick=${this.toggle} class=${'flex-1 flex items-center justify-center gap-2 ' + BTN_PRIMARY}>
                 <span>${timing ? 'Stop' : 'Start contraction'}</span>
