@@ -30,7 +30,7 @@
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
           colors: {
-            rose: { 50: '#fff1f3', 100: '#ffe4e8', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' },
+            brand: { 50: '#fff1f3', 100: '#ffe4e8', 200: '#fecdd3', 400: '#fb7185', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' },
             // Semantic theme tokens — values come from CSS variables that flip in dark mode.
             base:    'rgb(var(--c-base) / <alpha-value>)',     // page background
             card:    'rgb(var(--c-card) / <alpha-value>)',     // raised cards / panels
@@ -41,6 +41,7 @@
             body:    'rgb(var(--c-body) / <alpha-value>)',     // secondary text
             muted:   'rgb(var(--c-muted) / <alpha-value>)',    // tertiary text
             faint:   'rgb(var(--c-faint) / <alpha-value>)',    // faint text / icons
+            danger:  'rgb(var(--c-danger) / <alpha-value>)',   // destructive actions
           },
         },
       },
@@ -55,6 +56,7 @@
       --c-base: 245 245 245; --c-card: 255 255 255; --c-surface: 250 250 250;
       --c-line: 229 229 229; --c-track: 229 229 229;
       --c-ink: 23 23 23; --c-body: 64 64 64; --c-muted: 115 115 115; --c-faint: 163 163 163;
+      --c-danger: 220 38 38;
     }
     /* ---- Theme tokens (dark, follows system) ---- */
     @media (prefers-color-scheme: dark) {
@@ -63,6 +65,7 @@
         --c-base: 10 10 10; --c-card: 23 23 23; --c-surface: 38 38 38;
         --c-line: 64 64 64; --c-track: 64 64 64;
         --c-ink: 250 250 250; --c-body: 229 229 229; --c-muted: 163 163 163; --c-faint: 115 115 115;
+        --c-danger: 248 113 113;
       }
     }
     html { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
@@ -116,9 +119,9 @@
       count:    { title: 'Timeline',  body: 'This steady pattern (5 minutes apart, 1 minute long) has been consistent and continuous for a full 60 minutes without stopping.' },
     };
 
-    const NUM_CLS  = 'tnum w-full rounded-xl border border-line px-2 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
-    const TIME_CLS = 'tnum flex-1 w-full rounded-xl border border-line px-1 py-2 text-base text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
-    const BTN_PRIMARY = 'rounded-full bg-rose-500 hover:bg-rose-600 active:scale-[.99] text-white font-bold text-lg py-4 shadow-sm transition';
+    const NUM_CLS  = 'tnum w-full rounded-xl border border-line px-2 py-2 text-base text-center focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none';
+    const TIME_CLS = 'tnum flex-1 w-full rounded-xl border border-line px-1 py-2 text-base text-center focus:border-brand-400 focus:ring-1 focus:ring-brand-400 outline-none';
+    const BTN_PRIMARY = 'rounded-full bg-brand-500 hover:bg-brand-600 active:scale-[.99] text-white font-bold text-lg py-4 shadow-sm transition';
     const BTN_OUTLINE = 'rounded-full border border-line text-body font-bold text-lg py-4 hover:bg-surface active:scale-[.99] transition';
     const ICON_BTN = 'grid place-items-center rounded-lg text-muted hover:text-ink hover:bg-surface transition';
 
@@ -209,12 +212,12 @@
     const PANEL_PAD = 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));';
 
     function SettingsRow({ icon, title, sub, danger, onClick }) {
-      const tone = danger ? 'border-rose-200 hover:bg-rose-50' : 'border-line hover:bg-surface';
+      const tone = danger ? 'border-danger/40 hover:bg-danger/10' : 'border-line hover:bg-surface';
       return html`<button onClick=${onClick} class=${'w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ' + tone}>
-        <i class=${'iconoir-' + icon + ' text-xl shrink-0 ' + (danger ? 'text-rose-600' : 'text-body')}></i>
+        <i class=${'iconoir-' + icon + ' text-xl shrink-0 ' + (danger ? 'text-danger' : 'text-body')}></i>
         <div class="flex-1 min-w-0">
-          <div class=${'text-sm font-semibold ' + (danger ? 'text-rose-700' : 'text-ink')}>${title}</div>
-          <div class=${'text-xs ' + (danger ? 'text-rose-600/80' : 'text-muted')}>${sub}</div>
+          <div class=${'text-sm font-semibold ' + (danger ? 'text-danger' : 'text-ink')}>${title}</div>
+          <div class=${'text-xs ' + (danger ? 'text-danger/80' : 'text-muted')}>${sub}</div>
         </div>
       </button>`;
     }
@@ -512,7 +515,7 @@
               <div>
                 <div class="flex items-center justify-between mb-1.5">
                   <label class="text-xs font-medium text-muted">Date</label>
-                  <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition">Today</button>
+                  <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-brand-600 hover:text-brand-700 transition">Today</button>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                   <select class="picker" value=${e.month} onChange=${up('month')}>${MONTHS.map((m, i) => html`<option value=${i}>${m}</option>`)}</select>
@@ -669,12 +672,12 @@
               </div>
             </header>
 
-            ${check511(st) ? html`<div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            ${check511(st) ? html`<div class="rounded-2xl border border-brand-200 bg-brand-50 p-4">
               <div class="flex items-start gap-3">
-                <span class="grid place-items-center h-9 w-9 shrink-0 rounded-xl bg-rose-500 text-white text-xl"><i class="iconoir-hospital-circle"></i></span>
+                <span class="grid place-items-center h-9 w-9 shrink-0 rounded-xl bg-brand-500 text-white text-xl"><i class="iconoir-hospital-circle"></i></span>
                 <div>
-                  <p class="font-semibold text-rose-700 leading-tight">Time to call your provider</p>
-                  <p class="text-sm text-rose-600/90 mt-1">Your contractions match the 5-1-1 pattern — about 5 min apart, lasting ~1 min, for over an hour.</p>
+                  <p class="font-semibold text-brand-700 leading-tight">Time to call your provider</p>
+                  <p class="text-sm text-brand-600/90 mt-1">Your contractions match the 5-1-1 pattern — about 5 min apart, lasting ~1 min, for over an hour.</p>
                 </div>
               </div>
             </div>` : null}
