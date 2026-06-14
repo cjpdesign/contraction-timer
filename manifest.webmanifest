@@ -1,0 +1,14 @@
+{
+  "name": "Contraction Timer",
+  "short_name": "Contractions",
+  "description": "Track labor contractions and the 5-1-1 pattern.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f5f5f5",
+  "theme_color": "#f5f5f5",
+  "icons": [
+    { "src": "./logo.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

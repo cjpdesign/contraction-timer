@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f5f5f5" />
+  <title>Contraction Timer</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./logo.png" />
+  <link rel="apple-touch-icon" href="./logo.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Contractions" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/iconoir@7.11.0/css/iconoir.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
+          colors: { rose: { 50: '#fff1f3', 100: '#ffe4e8', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' } },
+        },
+      },
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    html { -webkit-tap-highlight-color: transparent; }
+    body, .tnum { font-variant-numeric: tabular-nums; }
+    /* Tint native date/time/number controls to match the app's rose accent (instead of browser blue). */
+    input { accent-color: #f43f6b; color-scheme: light; }
+    /* Custom-styled date/time select controls */
+    .picker {
+      -webkit-appearance: none; appearance: none;
+      width: 100%; text-align: center;
+      font-size: 0.875rem; color: #262626;
+      background-color: #fff;
+      border: 1px solid #e5e5e5; border-radius: 0.75rem;
+      padding: 0.625rem 1.625rem 0.625rem 0.625rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%23a3a3a3' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 0.4rem center;
+      outline: none; cursor: pointer;
+    }
+    .picker:focus { border-color: #fb7185; box-shadow: 0 0 0 1px #fb7185; }
+    /* subtle entrance for list rows */
+    @keyframes rowIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+    .row-in { animation: rowIn .25s ease; }
+  </style>
+</head>
+<body class="min-h-screen bg-neutral-100 text-neutral-800 font-sans antialiased">
+  <div id="app"></div>
+
+  <script>
+    // Register the service worker for offline support (only works over http(s), not file://).
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+    }
+  </script>
+
+  <script type="module">
+    import { html, Component, render } from 'https://unpkg.com/htm@3.1.1/preact/standalone.module.js';
+
+    // ---- Constants ----
+    const STORE_KEY = 'contraction-timer.v1';
+    const HOUR = 60 * 60 * 1000;
+
+    const LEVELS = {
+      1: { label: 'Mild',     fill: 'bg-amber-400 border-amber-400',   ring: 'ring-amber-400' },
+      2: { label: 'Moderate', fill: 'bg-orange-500 border-orange-500', ring: 'ring-orange-500' },
+      3: { label: 'Strong',   fill: 'bg-red-500 border-red-500',       ring: 'ring-red-500' },
+    };
+    const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const INFO = {
+      freq:     { title: 'Frequency', body: 'Contractions occur regularly every 5 minutes or less. This is measured from the start of one contraction to the start of the next.' },
+      duration: { title: 'Duration',  body: 'Each contraction lasts for about 60 seconds. This means your uterus is contracting hard enough and long enough to dilate the cervix.' },
+      count:    { title: 'Timeline',  body: 'This steady pattern (5 minutes apart, 1 minute long) has been consistent and continuous for a full 60 minutes without stopping.' },
+    };
+
+    const NUM_CLS  = 'tnum w-full rounded-xl border border-neutral-200 px-2 py-2.5 text-sm text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
+    const TIME_CLS = 'tnum flex-1 w-full rounded-xl border border-neutral-200 px-1 py-2.5 text-sm text-center focus:border-rose-400 focus:ring-1 focus:ring-rose-400 outline-none';
+    const BTN_PRIMARY = 'rounded-full bg-rose-500 hover:bg-rose-600 active:scale-[.99] text-white font-bold text-lg py-4 shadow-sm transition';
+    const BTN_OUTLINE = 'rounded-full border border-neutral-200 text-neutral-700 font-bold text-lg py-4 hover:bg-neutral-50 active:scale-[.99] transition';
+    const ICON_BTN = 'grid place-items-center rounded-lg text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition';
+
+    // ---- Persistence ----
+    function load() {
+      try {
+        const data = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
+        return {
+          contractions: (Array.isArray(data.contractions) ? data.contractions : [])
+            .filter((c) => c && Number.isFinite(c.start) && Number.isFinite(c.end))
+            .sort((a, b) => b.start - a.start),
+          activeStart: Number.isFinite(data.activeStart) ? data.activeStart : null,
+          selectedIntensity: [1, 2, 3].includes(data.selectedIntensity) ? data.selectedIntensity : 1,
+          archives: Array.isArray(data.archives) ? data.archives : [],
+        };
+      } catch { return { contractions: [], activeStart: null, selectedIntensity: 1, archives: [] }; }
+    }
+
+    // ---- Formatting ----
+    function fmtClock(ms) {
+      const s = Math.max(0, Math.floor(ms / 1000));
+      return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    }
+    function fmtDur(ms) {
+      const s = Math.round(ms / 1000);
+      if (s < 60) return s + 's';
+      const m = Math.floor(s / 60), r = s % 60;
+      return r ? `${m}m ${r}s` : `${m}m`;
+    }
+    function fmtGap(ms) {
+      const s = Math.round(ms / 1000);
+      if (s < 60) return `${s}s`;
+      const m = Math.floor(s / 60);
+      if (m < 60) return `${m}m ${s % 60}s`;
+      const h = Math.floor(m / 60);
+      if (h < 24) { const rm = m % 60; return rm ? `${h}h ${rm}m` : `${h}h`; }
+      const d = Math.floor(h / 24), rh = h % 24;
+      return rh ? `${d}d ${rh}h` : `${d}d`;
+    }
+    function fmtTime(ts) {
+      return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function dayKey(ts) {
+      const d = new Date(ts);
+      return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate();
+    }
+    function fmtDay(ts) {
+      const d = new Date(ts);
+      const sod = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+      const diff = Math.round((sod(new Date()) - sod(d)) / 86400000);
+      if (diff === 0) return 'Today';
+      if (diff === 1) return 'Yesterday';
+      return d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    function fmtArchiveDate(ts) {
+      return new Date(ts).toLocaleString([], { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    }
+    function daysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
+
+    // ---- Stats / 5-1-1 ----
+    function recentStats(contractions) {
+      const cutoff = Date.now() - HOUR;
+      const recent = contractions.filter((c) => c.start >= cutoff);
+      const durs = recent.map((c) => c.end - c.start);
+      const avgDur = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
+      const chrono = [...recent].sort((a, b) => a.start - b.start);
+      const gaps = [];
+      for (let i = 1; i < chrono.length; i++) gaps.push(chrono[i].start - chrono[i - 1].start);
+      const avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+      const span = chrono.length ? chrono[chrono.length - 1].start - chrono[0].start : 0;
+      return { avgDur, avgGap, count: recent.length, span };
+    }
+    function check511(s) {
+      return s.count >= 4 && s.span >= 50 * 60000
+        && s.avgGap != null && s.avgGap <= 5.5 * 60000
+        && s.avgDur != null && s.avgDur >= 45000;
+    }
+
+    // ---- Stateless components ----
+    function Modal({ z = 'z-40', onClose, children }) {
+      return html`
+        <div class=${'fixed inset-0 ' + z + ' flex items-end sm:items-center justify-center'}>
+          <div class="absolute inset-0 bg-neutral-900/30 backdrop-blur-sm" onClick=${onClose}></div>
+          ${children}
+        </div>`;
+    }
+    const PANEL = 'relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl border border-neutral-200 shadow-xl';
+    const PANEL_PAD = 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));';
+
+    function IntensityDots({ level }) {
+      const color = LEVELS[level].fill.split(' ')[0];
+      return html`<span class="flex items-center gap-1.5">
+        ${[1, 2, 3].map((i) => html`<span class=${'h-2.5 w-2.5 rounded-full ' + (i <= level ? color : 'bg-neutral-300')}></span>`)}
+      </span>`;
+    }
+
+    function SettingsRow({ icon, title, sub, danger, onClick }) {
+      const tone = danger ? 'border-rose-200 hover:bg-rose-50' : 'border-neutral-200 hover:bg-neutral-50';
+      return html`<button onClick=${onClick} class=${'w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-left transition ' + tone}>
+        <i class=${'iconoir-' + icon + ' text-xl shrink-0 ' + (danger ? 'text-rose-600' : 'text-neutral-600')}></i>
+        <div class="flex-1 min-w-0">
+          <div class=${'text-sm font-semibold ' + (danger ? 'text-rose-700' : 'text-neutral-800')}>${title}</div>
+          <div class=${'text-xs ' + (danger ? 'text-rose-600/80' : 'text-neutral-500')}>${sub}</div>
+        </div>
+      </button>`;
+    }
+
+    // ---- App ----
+    class App extends Component {
+      constructor() {
+        super();
+        const s = load();
+        this.state = { ...s, elapsed: 0, modal: null, edit: null, confirm: null, infoKey: null, copied: false };
+        this.ticker = null;
+        this.fileInput = null;
+      }
+
+      componentDidMount() {
+        if (this.state.activeStart != null) this.startTimer();
+        // Re-evaluate the rolling 5-1-1 window while idle.
+        this.idle = setInterval(() => { if (this.state.activeStart == null) this.forceUpdate(); }, 30000);
+      }
+      componentWillUnmount() { this.stopTimer(); clearInterval(this.idle); }
+
+      componentDidUpdate(_, prev) {
+        const keys = ['contractions', 'activeStart', 'selectedIntensity', 'archives'];
+        if (keys.some((k) => prev[k] !== this.state[k])) {
+          try {
+            const { contractions, activeStart, selectedIntensity, archives } = this.state;
+            localStorage.setItem(STORE_KEY, JSON.stringify({ contractions, activeStart, selectedIntensity, archives }));
+          } catch {}
+        }
+      }
+
+      // ---- Timer ----
+      startTimer = () => {
+        this.stopTimer();
+        const update = () => this.setState({ elapsed: Date.now() - this.state.activeStart });
+        this.ticker = setInterval(update, 200);
+        update();
+      };
+      stopTimer = () => { if (this.ticker) { clearInterval(this.ticker); this.ticker = null; } };
+      toggle = () => {
+        if (this.state.activeStart == null) {
+          this.setState({ activeStart: Date.now(), elapsed: 0 }, this.startTimer);
+        } else {
+          const start = this.state.activeStart, end = Date.now();
+          this.stopTimer();
+          const cs = [...this.state.contractions, { start, end, intensity: this.state.selectedIntensity }]
+            .sort((a, b) => b.start - a.start);
+          this.setState({ contractions: cs, activeStart: null, elapsed: 0 });
+        }
+      };
+      cycleIntensity = () => this.setState({ selectedIntensity: (this.state.selectedIntensity % 3) + 1 });
+
+      // ---- Confirm ----
+      openConfirm = (opts) => this.setState({ confirm: opts });
+      closeConfirm = () => this.setState({ confirm: null });
+
+      // ---- Edit / Add ----
+      buildEdit = (ts, isNew, index, durSec, level) => {
+        const d = new Date(ts), nowY = new Date().getFullYear(), dY = d.getFullYear();
+        const minY = Math.min(nowY - 2, dY), maxY = Math.max(nowY, dY);
+        const years = []; for (let y = maxY; y >= minY; y--) years.push(y);
+        return {
+          isNew, index, years, ms: d.getMilliseconds(),
+          month: d.getMonth(), day: d.getDate(), year: dY,
+          hour: ((d.getHours() + 11) % 12) + 1, minute: d.getMinutes(), second: d.getSeconds(),
+          ampm: d.getHours() < 12 ? 'AM' : 'PM',
+          durMin: Math.floor(durSec / 60), durSec: durSec % 60, level,
+        };
+      };
+      openAdd = () => this.setState({ modal: 'edit', edit: this.buildEdit(Date.now(), true, -1, 60, this.state.selectedIntensity) });
+      openEdit = (i) => {
+        const c = this.state.contractions[i];
+        if (!c) return;
+        const durSec = Math.max(0, Math.round((c.end - c.start) / 1000));
+        const level = [1, 2, 3].includes(c.intensity) ? c.intensity : 1;
+        this.setState({ modal: 'edit', edit: this.buildEdit(c.start, false, i, durSec, level) });
+      };
+      closeEdit = () => this.setState({ modal: null, edit: null });
+      setEdit = (patch) => this.setState({ edit: { ...this.state.edit, ...patch } });
+      setToday = () => { const d = new Date(); this.setEdit({ month: d.getMonth(), day: d.getDate(), year: d.getFullYear() }); };
+      saveEdit = () => {
+        const e = this.state.edit, clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+        const year = +e.year, month = +e.month;
+        const day = clamp(Math.floor(+e.day || 1), 1, daysInMonth(year, month));
+        let hour = clamp(Math.floor(+e.hour || 12), 1, 12) % 12;
+        if (e.ampm === 'PM') hour += 12;
+        const minute = clamp(Math.floor(+e.minute || 0), 0, 59);
+        const second = clamp(Math.floor(+e.second || 0), 0, 59);
+        const start = new Date(year, month, day, hour, minute, second, e.isNew ? 0 : e.ms).getTime();
+        if (!Number.isFinite(start)) return;
+        const dmin = Math.max(0, Math.floor(+e.durMin || 0)), dsec = Math.max(0, Math.floor(+e.durSec || 0));
+        const rec = { start, end: start + (dmin * 60 + dsec) * 1000, intensity: e.level };
+        const cs = (e.isNew
+          ? [...this.state.contractions, rec]
+          : this.state.contractions.map((c, j) => (j === e.index ? rec : c))
+        ).sort((a, b) => b.start - a.start);
+        this.setState({ contractions: cs, modal: null, edit: null });
+      };
+
+      askDelete = (i) => this.openConfirm({
+        title: 'Delete this contraction?', message: "This can't be undone.", okLabel: 'Delete',
+        onOk: () => this.setState({ contractions: this.state.contractions.filter((_, j) => j !== i) }),
+      });
+
+      // ---- Archive ----
+      askArchive = () => {
+        if (!this.state.contractions.length) return;
+        const n = this.state.contractions.length;
+        this.setState({ modal: null });
+        this.openConfirm({
+          title: `Archive ${n} contraction${n > 1 ? 's' : ''}?`,
+          message: 'They’ll be saved as a group and the live list will start fresh from 01.',
+          okLabel: 'Archive',
+          onOk: () => this.setState({
+            archives: [{ id: Date.now(), archivedAt: Date.now(), items: this.state.contractions }, ...this.state.archives],
+            contractions: [],
+          }),
+        });
+      };
+      deleteArchive = (id) => this.openConfirm({
+        title: 'Delete this archived group?', message: "This can't be undone.", okLabel: 'Delete',
+        onOk: () => this.setState({ archives: this.state.archives.filter((g) => g.id !== id) }),
+      });
+
+      askClear = () => {
+        if (!this.state.contractions.length && this.state.activeStart == null && !this.state.archives.length) return;
+        this.setState({ modal: null });
+        this.openConfirm({
+          title: 'Clear all data?',
+          message: 'All recorded contractions and archived groups will be removed. This cannot be undone.',
+          okLabel: 'Clear all',
+          onOk: () => { this.stopTimer(); this.setState({ contractions: [], archives: [], activeStart: null, elapsed: 0 }); },
+        });
+      };
+
+      // ---- Export / Copy / Import ----
+      buildJSON = () => JSON.stringify(
+        { app: 'contraction-timer', version: 1, exportedAt: new Date().toISOString(), contractions: this.state.contractions }, null, 2);
+      buildTSV = () => {
+        const asc = [...this.state.contractions].sort((a, b) => a.start - b.start);
+        const head = ['#', 'Start', 'Duration', 'Intensity', 'Apart'].join('\t');
+        const lines = asc.map((c, i) => {
+          const prev = asc[i - 1];
+          const lvl = (LEVELS[c.intensity] || LEVELS[1]).label;
+          return [String(i + 1).padStart(2, '0'), new Date(c.start).toLocaleString(), fmtDur(c.end - c.start), lvl, prev ? fmtGap(c.start - prev.start) : ''].join('\t');
+        });
+        return [head, ...lines].join('\n');
+      };
+      buildSummary = () => {
+        const st = recentStats(this.state.contractions);
+        const head = `Contraction log — ${this.state.contractions.length} total`;
+        const sub = st.avgDur != null
+          ? `Last hour: ${st.count}, avg ${fmtDur(st.avgDur)} long, ${st.avgGap != null ? fmtGap(st.avgGap) : '—'} apart` : '';
+        return [head, sub, '', this.buildTSV()].filter(Boolean).join('\n');
+      };
+      exportData = async () => {
+        if (!this.state.contractions.length) return;
+        const json = this.buildJSON();
+        const fname = 'contractions-' + new Date().toISOString().slice(0, 10) + '.json';
+        const file = new File([json], fname, { type: 'application/json' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          try { await navigator.share({ files: [file], title: 'Contraction log' }); return; }
+          catch (e) { if (e && e.name === 'AbortError') return; }
+        }
+        const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = fname;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      };
+      copySummary = async () => {
+        if (!this.state.contractions.length) return;
+        const text = this.buildSummary();
+        const done = () => { this.setState({ copied: true }); setTimeout(() => this.setState({ copied: false }), 1200); };
+        try { await navigator.clipboard.writeText(text); done(); }
+        catch {
+          const ta = document.createElement('textarea');
+          ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand('copy'); done(); } catch {}
+          ta.remove();
+        }
+      };
+      onImportFile = (ev) => {
+        const file = ev.target.files && ev.target.files[0];
+        ev.target.value = '';
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          let data;
+          try { data = JSON.parse(reader.result); } catch { alert('Could not read that file.'); return; }
+          const arr = Array.isArray(data) ? data : (data && Array.isArray(data.contractions) ? data.contractions : null);
+          const clean = (arr || [])
+            .filter((c) => c && Number.isFinite(c.start) && Number.isFinite(c.end))
+            .map((c) => ({ start: c.start, end: c.end, intensity: [1, 2, 3].includes(c.intensity) ? c.intensity : 1 }))
+            .sort((a, b) => b.start - a.start);
+          if (!clean.length) { alert('No contractions found in that file.'); return; }
+          this.setState({ modal: null });
+          this.openConfirm({
+            title: `Import ${clean.length} contraction${clean.length > 1 ? 's' : ''}?`,
+            message: 'This replaces your current history.',
+            okLabel: 'Import',
+            onOk: () => this.setState({ contractions: clean }),
+          });
+        };
+        reader.readAsText(file);
+      };
+
+      // ---- Renders ----
+      renderStats(st) {
+        const durMet = st.avgDur != null && st.avgDur >= 45000;
+        const gapMet = st.avgGap != null && st.avgGap <= 5.5 * 60000;
+        const spanMet = st.span >= 50 * 60000 && st.count >= 4;
+        const col = (key, label, value, hint, ratio, met) => {
+          const pct = (Math.max(0, Math.min(1, ratio || 0)) * 100).toFixed(0);
+          return html`<div class="relative px-4 py-3.5">
+            <button aria-label=${'About ' + label} onClick=${() => this.setState({ modal: 'info', infoKey: key })}
+              class="absolute top-1.5 right-1.5 grid place-items-center h-6 w-6 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition">
+              <i class="iconoir-info-circle text-sm"></i>
+            </button>
+            <div class="text-[11px] text-neutral-500 leading-tight pr-5 whitespace-nowrap">${label}</div>
+            <div class="tnum text-base sm:text-xl font-bold mt-0.5 whitespace-nowrap">${value}</div>
+            <div class="mt-3 pt-3 border-t border-neutral-200/70">
+              <div class="h-1.5 rounded-full bg-neutral-200 overflow-hidden">
+                <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-emerald-500' : 'bg-neutral-600')} style=${'width:' + pct + '%'}></div>
+              </div>
+              <div class="text-[10px] text-neutral-500 leading-tight mt-1.5">${hint}</div>
+            </div>
+          </div>`;
+        };
+        return html`<section class="rounded-2xl bg-white border border-neutral-200/70 overflow-hidden">
+          <div class="grid grid-cols-3 divide-x divide-neutral-200/70">
+            ${col('freq', 'avg apart', st.avgGap != null ? fmtGap(st.avgGap) : '—', '≤5 min apart', st.avgGap != null ? (5 * 60000) / st.avgGap : 0, gapMet)}
+            ${col('duration', 'avg duration', st.avgDur != null ? fmtDur(st.avgDur) : '—', '1+ min long', st.avgDur != null ? st.avgDur / 60000 : 0, durMet)}
+            ${col('count', 'last hour', String(st.count), '1+ hour', st.span / HOUR, spanMet)}
+          </div>
+        </section>`;
+      }
+
+      renderHistory() {
+        const cs = this.state.contractions;
+        if (!cs.length) {
+          return html`<section>
+            <div class="rounded-2xl border border-dashed border-neutral-200 bg-white/50 py-12 text-center">
+              <i class="iconoir-hourglass text-3xl text-neutral-500"></i>
+              <p class="text-sm text-neutral-500 mt-2">No contractions yet.<br/>Tap start when one begins.</p>
+            </div>
+          </section>`;
+        }
+        const nodes = [];
+        let prevDay = null;
+        cs.forEach((c, i) => {
+          const day = dayKey(c.start);
+          if (day !== prevDay) {
+            nodes.push(html`<li key=${'d' + day} class=${'px-1 pb-1 text-xs font-semibold text-neutral-500' + (prevDay === null ? '' : ' pt-3')}>${fmtDay(c.start)}</li>`);
+            prevDay = day;
+          }
+          const older = cs[i + 1];
+          const cfg = LEVELS[c.intensity] || LEVELS[1];
+          const num = String(cs.length - i).padStart(2, '0');
+          nodes.push(html`<li key=${'c' + c.start + '-' + i} class="row-in flex items-center gap-3 rounded-2xl bg-white border border-neutral-200/70 px-4 py-3">
+            <span class="tnum text-xs font-semibold text-neutral-500 shrink-0">${num}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span class="tnum font-semibold text-neutral-900">${fmtDur(c.end - c.start)}</span>
+                <span class=${'h-2 w-2 rounded-full border shrink-0 ' + cfg.fill}></span>
+              </div>
+              <div class="text-xs text-neutral-500 mt-0.5">${fmtTime(c.start)}</div>
+            </div>
+            <div class="flex items-center shrink-0 -mr-1">
+              <button onClick=${() => this.openEdit(i)} class=${'h-8 w-8 ' + ICON_BTN}><i class="iconoir-edit-pencil text-lg"></i></button>
+              <button onClick=${() => this.askDelete(i)} class=${'h-8 w-8 ' + ICON_BTN}><i class="iconoir-xmark text-lg"></i></button>
+            </div>
+          </li>`);
+          if (older) {
+            nodes.push(html`<li key=${'g' + c.start} class="flex items-center justify-center px-3">
+              <span class="tnum text-[11px] font-medium text-neutral-500">${fmtGap(c.start - older.start)}</span>
+            </li>`);
+          }
+        });
+        return html`<section><ul class="space-y-2">${nodes}</ul></section>`;
+      }
+
+      renderEdit() {
+        const e = this.state.edit;
+        const up = (k) => (ev) => this.setEdit({ [k]: ev.target.value });
+        return html`<${Modal} z="z-30" onClose=${this.closeEdit}>
+          <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
+            <div class="flex items-center justify-between mb-5">
+              <h3 class="text-base font-bold tracking-tight">${e.isNew ? 'Add contraction' : 'Edit contraction'}</h3>
+              <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+            </div>
+
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-medium text-neutral-500">Date</label>
+              <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition">Today</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <select class="picker" value=${e.month} onChange=${up('month')}>${MONTHS.map((m, i) => html`<option value=${i}>${m}</option>`)}</select>
+              <input type="number" min="1" max=${daysInMonth(+e.year, +e.month)} inputmode="numeric" class=${NUM_CLS} value=${e.day} onInput=${up('day')} />
+              <select class="picker" value=${e.year} onChange=${up('year')}>${e.years.map((y) => html`<option value=${y}>${y}</option>`)}</select>
+            </div>
+
+            <label class="block text-xs font-medium text-neutral-500 mb-1.5">Time</label>
+            <div class="flex items-center gap-1.5 mb-4">
+              <input type="number" min="1" max="12" inputmode="numeric" class=${TIME_CLS} value=${e.hour} onInput=${up('hour')} />
+              <span class="text-sm font-semibold text-neutral-400">:</span>
+              <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.minute} onInput=${up('minute')} />
+              <span class="text-sm font-semibold text-neutral-400">:</span>
+              <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.second} onInput=${up('second')} />
+              <select class="picker flex-1" value=${e.ampm} onChange=${up('ampm')}><option value="AM">AM</option><option value="PM">PM</option></select>
+            </div>
+
+            <label class="block text-xs font-medium text-neutral-500 mb-1.5">Duration</label>
+            <div class="flex items-center gap-2 mb-4">
+              <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" inputmode="numeric" class=${NUM_CLS} value=${e.durMin} onInput=${up('durMin')} /><span class="text-sm text-neutral-500">min</span></div>
+              <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" max="59" inputmode="numeric" class=${NUM_CLS} value=${e.durSec} onInput=${up('durSec')} /><span class="text-sm text-neutral-500">sec</span></div>
+            </div>
+
+            <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
+            <div class="flex items-center justify-center gap-5 mb-6">
+              ${[1, 2, 3].map((l) => html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
+                class=${'h-9 w-9 rounded-full border-2 transition ' + LEVELS[l].fill + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : '')}></button>`)}
+            </div>
+
+            <button onClick=${this.saveEdit} class=${'w-full ' + BTN_PRIMARY}>${e.isNew ? 'Add contraction' : 'Save changes'}</button>
+          </div>
+        <//>`;
+      }
+
+      renderSettings() {
+        const n = this.state.archives.length;
+        return html`<${Modal} z="z-40" onClose=${() => this.setState({ modal: null })}>
+          <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-base font-bold tracking-tight">Settings</h3>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+            </div>
+            <div class="space-y-2">
+              <${SettingsRow} icon="upload" title="Export data" sub="Save a backup file or share it" onClick=${this.exportData} />
+              <${SettingsRow} icon="copy" title="Copy summary" sub=${this.state.copied ? 'Copied!' : 'For pasting into Sheets or a message'} onClick=${this.copySummary} />
+              <${SettingsRow} icon="download" title="Import data" sub="Restore from a backup file" onClick=${() => this.fileInput && this.fileInput.click()} />
+              <${SettingsRow} icon="archive" title="Archive current session" sub="Save these to a group and start fresh" onClick=${this.askArchive} />
+              <${SettingsRow} icon="folder" title="Archived sessions" sub=${n ? `${n} group${n > 1 ? 's' : ''} saved` : 'View past groups'} onClick=${() => this.setState({ modal: 'archive' })} />
+              <${SettingsRow} icon="trash" title="Clear all data" sub="Delete all recorded contractions" danger onClick=${this.askClear} />
+              <input type="file" accept="application/json,.json" class="hidden" ref=${(el) => (this.fileInput = el)} onChange=${this.onImportFile} />
+            </div>
+          </div>
+        <//>`;
+      }
+
+      renderArchive() {
+        const groups = this.state.archives;
+        return html`<${Modal} z="z-40" onClose=${() => this.setState({ modal: null })}>
+          <div class=${PANEL + ' flex flex-col max-h-[85vh]'}>
+            <div class="flex items-center justify-between p-6 pb-3 shrink-0">
+              <h3 class="text-base font-bold tracking-tight">Archived sessions</h3>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+            </div>
+            <div class="overflow-y-auto px-6 pb-6 space-y-5" style=${PANEL_PAD}>
+              ${!groups.length
+                ? html`<p class="text-sm text-neutral-500 text-center py-8">No archived sessions yet.</p>`
+                : groups.map((g) => {
+                    const items = [...g.items].sort((a, b) => b.start - a.start);
+                    return html`<div key=${g.id}>
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-semibold text-neutral-700">${fmtArchiveDate(g.archivedAt)}</div>
+                        <div class="flex items-center gap-1.5">
+                          <span class="text-xs text-neutral-400">${g.items.length} total</span>
+                          <button aria-label="Delete this archived group" onClick=${() => this.deleteArchive(g.id)} class=${'h-7 w-7 ' + ICON_BTN}><i class="iconoir-trash text-base"></i></button>
+                        </div>
+                      </div>
+                      <div class="space-y-1.5">
+                        ${items.map((c, i) => {
+                          const color = (LEVELS[c.intensity] || LEVELS[1]).fill.split(' ')[0];
+                          return html`<div key=${c.start} class="flex items-center gap-3 rounded-xl bg-neutral-50 px-3 py-2">
+                            <span class="tnum text-xs font-semibold text-neutral-400 shrink-0">${String(items.length - i).padStart(2, '0')}</span>
+                            <span class="tnum font-semibold text-neutral-900 flex-1">${fmtDur(c.end - c.start)}</span>
+                            <span class=${'h-2 w-2 rounded-full shrink-0 ' + color}></span>
+                            <span class="text-xs text-neutral-500 shrink-0">${fmtTime(c.start)}</span>
+                          </div>`;
+                        })}
+                      </div>
+                    </div>`;
+                  })}
+            </div>
+          </div>
+        <//>`;
+      }
+
+      renderInfo() {
+        const i = INFO[this.state.infoKey];
+        if (!i) return null;
+        return html`<${Modal} z="z-50" onClose=${() => this.setState({ modal: null })}>
+          <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-base font-bold tracking-tight">${i.title}</h3>
+              <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
+            </div>
+            <p class="text-sm text-neutral-600 leading-relaxed">${i.body}</p>
+          </div>
+        <//>`;
+      }
+
+      renderConfirm() {
+        const c = this.state.confirm;
+        return html`<${Modal} z="z-50" onClose=${this.closeConfirm}>
+          <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
+            <h3 class="text-base font-bold tracking-tight">${c.title}</h3>
+            <p class="text-sm text-neutral-500 mt-1.5">${c.message || ''}</p>
+            <div class="flex gap-3 mt-6">
+              <button onClick=${this.closeConfirm} class=${'flex-1 ' + BTN_OUTLINE}>Cancel</button>
+              <button onClick=${() => { const cb = c.onOk; this.closeConfirm(); cb && cb(); }} class=${'flex-1 ' + BTN_PRIMARY}>${c.okLabel || 'Delete'}</button>
+            </div>
+          </div>
+        <//>`;
+      }
+
+      render() {
+        const { activeStart, selectedIntensity, modal, confirm } = this.state;
+        const st = recentStats(this.state.contractions);
+        const timing = activeStart != null;
+
+        return [
+          html`<div class="mx-auto max-w-md px-4 pb-28 pt-6 space-y-6">
+            <header class="flex items-center justify-between">
+              <div class="flex items-center gap-2.5">
+                <span class="grid place-items-center h-10 w-10 rounded-2xl bg-rose-500 text-white text-xl shadow-sm"><i class="iconoir-pregnant-woman"></i></span>
+                <div>
+                  <h1 class="text-lg font-bold tracking-tight leading-none">Contraction Timer</h1>
+                  <p class="text-xs text-neutral-500 mt-0.5">Track labor, simply</p>
+                </div>
+              </div>
+              <div class="flex items-center">
+                <button title="Add a contraction" onClick=${this.openAdd} class="grid place-items-center h-10 w-9 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"><i class="iconoir-plus text-xl"></i></button>
+                <button title="Settings" onClick=${() => this.setState({ modal: 'settings' })} class="grid place-items-center h-10 w-9 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"><i class="iconoir-settings text-xl"></i></button>
+              </div>
+            </header>
+
+            ${check511(st) ? html`<div class="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+              <div class="flex items-start gap-3">
+                <span class="grid place-items-center h-9 w-9 shrink-0 rounded-xl bg-rose-500 text-white text-xl"><i class="iconoir-hospital-circle"></i></span>
+                <div>
+                  <p class="font-semibold text-rose-700 leading-tight">Time to call your provider</p>
+                  <p class="text-sm text-rose-600/90 mt-1">Your contractions match the 5-1-1 pattern — about 5 min apart, lasting ~1 min, for over an hour.</p>
+                </div>
+              </div>
+            </div>` : null}
+
+            ${this.renderStats(st)}
+            ${this.renderHistory()}
+
+            <p class="text-center text-[11px] text-neutral-500 leading-relaxed">
+              This tool is for tracking only and is not medical advice.<br/>Always follow your provider's guidance.
+            </p>
+          </div>`,
+
+          html`<div class="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200/70 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/65" style="padding-bottom: env(safe-area-inset-bottom);">
+            <div class="mx-auto max-w-md px-4 py-3 flex items-center gap-3">
+              <button onClick=${this.toggle} class=${'flex-1 flex items-center justify-center gap-2 ' + BTN_PRIMARY}>
+                <span>${timing ? 'Stop' : 'Start contraction'}</span>
+                ${timing ? html`<span class="tnum">${fmtClock(this.state.elapsed)}</span>` : null}
+              </button>
+              <button aria-label=${'Intensity: ' + LEVELS[selectedIntensity].label + '. Tap to change.'} onClick=${this.cycleIntensity}
+                class="shrink-0 h-16 w-16 grid place-items-center rounded-full bg-white border border-neutral-200 shadow-sm active:scale-[.97] transition">
+                <${IntensityDots} level=${selectedIntensity} />
+              </button>
+            </div>
+          </div>`,
+
+          modal === 'edit' ? this.renderEdit() : null,
+          modal === 'settings' ? this.renderSettings() : null,
+          modal === 'archive' ? this.renderArchive() : null,
+          modal === 'info' ? this.renderInfo() : null,
+          confirm ? this.renderConfirm() : null,
+        ];
+      }
+    }
+
+    render(html`<${App} />`, document.getElementById('app'));
+  </script>
+</body>
+</html>
