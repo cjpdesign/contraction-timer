@@ -515,10 +515,16 @@
               <div>
                 <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
                 <div class="flex items-center gap-4">
-                  ${[1, 2, 3].map((l) => html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
-                    class=${'h-11 w-11 grid place-items-center rounded-full text-white text-xl transition ' + LEVELS[l].fill.split(' ')[0] + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : ' opacity-40')}>
-                    <i class=${'iconoir-' + LEVELS[l].icon}></i>
-                  </button>`)}
+                  ${[1, 2, 3].map((l) => {
+                    const sel = l === e.level;
+                    const cls = sel
+                      ? 'text-white ' + LEVELS[l].fill.split(' ')[0] + ' ring-2 ring-offset-2 ' + LEVELS[l].ring
+                      : 'text-neutral-600 bg-neutral-200';
+                    return html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
+                      class=${'h-11 w-11 grid place-items-center rounded-full text-xl transition ' + cls}>
+                      <i class=${'iconoir-' + LEVELS[l].icon}></i>
+                    </button>`;
+                  })}
                 </div>
               </div>
             </div>
