@@ -43,7 +43,7 @@
           colors: {
             brand: { 50: '#fff1f3', 100: '#ffe4e8', 200: '#fecdd3', 400: '#fb7185', 500: '#f43f6b', 600: '#e11d54', 700: '#be123c' },
             // Semantic theme tokens — values come from CSS variables that flip in dark mode.
-            base:    'rgb(var(--c-base) / <alpha-value>)',     // page background
+            page:    'rgb(var(--c-base) / <alpha-value>)',     // page background (named 'page' — 'base' would clash with text-base)
             card:    'rgb(var(--c-card) / <alpha-value>)',     // raised cards / panels
             surface: 'rgb(var(--c-surface) / <alpha-value>)',  // subtle insets / groups / hovers
             line:    'rgb(var(--c-line) / <alpha-value>)',     // borders / dividers
@@ -110,7 +110,7 @@
     .row-in { animation: rowIn .25s ease; }
   </style>
 </head>
-<body class="min-h-screen bg-base text-ink font-sans antialiased">
+<body class="min-h-screen bg-page text-ink font-sans antialiased">
   <div id="app"></div>
 
   <script>
