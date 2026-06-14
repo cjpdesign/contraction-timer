@@ -76,9 +76,9 @@
     const HOUR = 60 * 60 * 1000;
 
     const LEVELS = {
-      1: { label: 'Mild',     fill: 'bg-amber-400 border-amber-400',   ring: 'ring-amber-400' },
-      2: { label: 'Moderate', fill: 'bg-orange-500 border-orange-500', ring: 'ring-orange-500' },
-      3: { label: 'Strong',   fill: 'bg-red-500 border-red-500',       ring: 'ring-red-500' },
+      1: { label: 'Mild',     fill: 'bg-amber-400 border-amber-400',   ring: 'ring-amber-400',   icon: 'emoji-look-down' },
+      2: { label: 'Moderate', fill: 'bg-orange-500 border-orange-500', ring: 'ring-orange-500',  icon: 'emoji-really' },
+      3: { label: 'Strong',   fill: 'bg-red-500 border-red-500',       ring: 'ring-red-500',     icon: 'emoji-sad' },
     };
     const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const INFO = {
@@ -178,13 +178,6 @@
     }
     const PANEL = 'relative w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl border border-neutral-200 shadow-xl';
     const PANEL_PAD = 'padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));';
-
-    function IntensityDots({ level }) {
-      const color = LEVELS[level].fill.split(' ')[0];
-      return html`<span class="flex items-center gap-1.5">
-        ${[1, 2, 3].map((i) => html`<span class=${'h-2.5 w-2.5 rounded-full ' + (i <= level ? color : 'bg-neutral-300')}></span>`)}
-      </span>`;
-    }
 
     function SettingsRow({ icon, title, sub, danger, onClick }) {
       const tone = danger ? 'border-rose-200 hover:bg-rose-50' : 'border-neutral-200 hover:bg-neutral-50';
@@ -664,8 +657,8 @@
                 ${timing ? html`<span class="tnum">${fmtClock(this.state.elapsed)}</span>` : null}
               </button>
               <button aria-label=${'Intensity: ' + LEVELS[selectedIntensity].label + '. Tap to change.'} onClick=${this.cycleIntensity}
-                class="shrink-0 h-16 w-16 grid place-items-center rounded-full bg-white border border-neutral-200 shadow-sm active:scale-[.97] transition">
-                <${IntensityDots} level=${selectedIntensity} />
+                class=${'shrink-0 h-16 w-16 grid place-items-center rounded-full text-white text-3xl shadow-sm active:scale-[.97] transition ' + LEVELS[selectedIntensity].fill.split(' ')[0]}>
+                <i class=${'iconoir-' + LEVELS[selectedIntensity].icon}></i>
               </button>
             </div>
           </div>`,
