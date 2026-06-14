@@ -403,9 +403,9 @@
               class="absolute top-1.5 right-1.5 grid place-items-center h-6 w-6 rounded-full text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition">
               <i class="iconoir-info-circle text-sm"></i>
             </button>
-            <div class="text-[11px] text-neutral-500 leading-tight pr-5 whitespace-nowrap">${label}</div>
+            <div class="text-[11px] leading-tight pr-5 whitespace-nowrap">${label}</div>
             <div class="tnum text-base sm:text-xl font-bold mt-0.5 whitespace-nowrap">${value}</div>
-            <div class="mt-3 pt-3 border-t border-neutral-200/70">
+            <div class="mt-3">
               <div class="h-1.5 rounded-full bg-neutral-200 overflow-hidden">
                 <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-emerald-500' : 'bg-neutral-600')} style=${'width:' + pct + '%'}></div>
               </div>
@@ -415,9 +415,9 @@
         };
         return html`<section class="rounded-2xl bg-white border border-neutral-200/70 overflow-hidden">
           <div class="grid grid-cols-3 divide-x divide-neutral-200/70">
-            ${col('freq', 'avg apart', st.avgGap != null ? fmtGap(st.avgGap) : '—', '≤5 min apart', st.avgGap != null ? (5 * 60000) / st.avgGap : 0, gapMet)}
-            ${col('duration', 'avg duration', st.avgDur != null ? fmtDur(st.avgDur) : '—', '1+ min long', st.avgDur != null ? st.avgDur / 60000 : 0, durMet)}
-            ${col('count', 'last hour', String(st.count), '1+ hour', st.span / HOUR, spanMet)}
+            ${col('freq', 'Frequency', st.avgGap != null ? fmtGap(st.avgGap) : '—', '≤5 min apart', st.avgGap != null ? (5 * 60000) / st.avgGap : 0, gapMet)}
+            ${col('duration', 'Duration', st.avgDur != null ? fmtDur(st.avgDur) : '—', '1+ min long', st.avgDur != null ? st.avgDur / 60000 : 0, durMet)}
+            ${col('count', 'Timeline', String(st.count), '1+ hour', st.span / HOUR, spanMet)}
           </div>
         </section>`;
       }
@@ -476,36 +476,46 @@
               <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100 transition"><i class="iconoir-xmark text-xl"></i></button>
             </div>
 
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="text-xs font-medium text-neutral-500">Date</label>
-              <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition">Today</button>
-            </div>
-            <div class="grid grid-cols-3 gap-2 mb-3">
-              <select class="picker" value=${e.month} onChange=${up('month')}>${MONTHS.map((m, i) => html`<option value=${i}>${m}</option>`)}</select>
-              <input type="number" min="1" max=${daysInMonth(+e.year, +e.month)} inputmode="numeric" class=${NUM_CLS} value=${e.day} onInput=${up('day')} />
-              <select class="picker" value=${e.year} onChange=${up('year')}>${e.years.map((y) => html`<option value=${y}>${y}</option>`)}</select>
+            <div class="rounded-2xl border border-neutral-200/70 bg-neutral-50 p-4 space-y-3 mb-3">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="text-xs font-medium text-neutral-500">Date</label>
+                  <button type="button" onClick=${this.setToday} class="text-xs font-semibold text-rose-600 hover:text-rose-700 transition">Today</button>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <select class="picker" value=${e.month} onChange=${up('month')}>${MONTHS.map((m, i) => html`<option value=${i}>${m}</option>`)}</select>
+                  <input type="number" min="1" max=${daysInMonth(+e.year, +e.month)} inputmode="numeric" class=${NUM_CLS} value=${e.day} onInput=${up('day')} />
+                  <select class="picker" value=${e.year} onChange=${up('year')}>${e.years.map((y) => html`<option value=${y}>${y}</option>`)}</select>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-neutral-500 mb-1.5">Time</label>
+                <div class="flex items-center gap-1.5">
+                  <input type="number" min="1" max="12" inputmode="numeric" class=${TIME_CLS} value=${e.hour} onInput=${up('hour')} />
+                  <span class="text-sm font-semibold text-neutral-400">:</span>
+                  <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.minute} onInput=${up('minute')} />
+                  <span class="text-sm font-semibold text-neutral-400">:</span>
+                  <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.second} onInput=${up('second')} />
+                  <select class="picker flex-1" value=${e.ampm} onChange=${up('ampm')}><option value="AM">AM</option><option value="PM">PM</option></select>
+                </div>
+              </div>
             </div>
 
-            <label class="block text-xs font-medium text-neutral-500 mb-1.5">Time</label>
-            <div class="flex items-center gap-1.5 mb-4">
-              <input type="number" min="1" max="12" inputmode="numeric" class=${TIME_CLS} value=${e.hour} onInput=${up('hour')} />
-              <span class="text-sm font-semibold text-neutral-400">:</span>
-              <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.minute} onInput=${up('minute')} />
-              <span class="text-sm font-semibold text-neutral-400">:</span>
-              <input type="number" min="0" max="59" inputmode="numeric" class=${TIME_CLS} value=${e.second} onInput=${up('second')} />
-              <select class="picker flex-1" value=${e.ampm} onChange=${up('ampm')}><option value="AM">AM</option><option value="PM">PM</option></select>
-            </div>
-
-            <label class="block text-xs font-medium text-neutral-500 mb-1.5">Duration</label>
-            <div class="flex items-center gap-2 mb-4">
-              <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" inputmode="numeric" class=${NUM_CLS} value=${e.durMin} onInput=${up('durMin')} /><span class="text-sm text-neutral-500">min</span></div>
-              <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" max="59" inputmode="numeric" class=${NUM_CLS} value=${e.durSec} onInput=${up('durSec')} /><span class="text-sm text-neutral-500">sec</span></div>
-            </div>
-
-            <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
-            <div class="flex items-center justify-center gap-5 mb-6">
-              ${[1, 2, 3].map((l) => html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
-                class=${'h-9 w-9 rounded-full border-2 transition ' + LEVELS[l].fill + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : '')}></button>`)}
+            <div class="rounded-2xl border border-neutral-200/70 bg-neutral-50 p-4 space-y-3 mb-6">
+              <div>
+                <label class="block text-xs font-medium text-neutral-500 mb-1.5">Duration</label>
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" inputmode="numeric" class=${NUM_CLS} value=${e.durMin} onInput=${up('durMin')} /><span class="text-sm text-neutral-500">min</span></div>
+                  <div class="flex items-center gap-1.5 flex-1"><input type="number" min="0" max="59" inputmode="numeric" class=${NUM_CLS} value=${e.durSec} onInput=${up('durSec')} /><span class="text-sm text-neutral-500">sec</span></div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-neutral-500 mb-2">Intensity</label>
+                <div class="flex items-center gap-5">
+                  ${[1, 2, 3].map((l) => html`<button aria-label=${LEVELS[l].label} onClick=${() => this.setEdit({ level: l })}
+                    class=${'h-9 w-9 rounded-full border-2 transition ' + LEVELS[l].fill + (l === e.level ? ' ring-2 ring-offset-2 ' + LEVELS[l].ring : '')}></button>`)}
+                </div>
+              </div>
             </div>
 
             <button onClick=${this.saveEdit} class=${'w-full ' + BTN_PRIMARY}>${e.isNew ? 'Add contraction' : 'Save changes'}</button>
@@ -609,12 +619,9 @@
         return [
           html`<div class="mx-auto max-w-md px-4 pb-28 pt-6 space-y-6">
             <header class="flex items-center justify-between">
-              <div class="flex items-center gap-2.5">
-                <span class="grid place-items-center h-10 w-10 rounded-2xl bg-rose-500 text-white text-xl shadow-sm"><i class="iconoir-pregnant-woman"></i></span>
-                <div>
-                  <h1 class="text-lg font-bold tracking-tight leading-none">Contraction Timer</h1>
-                  <p class="text-xs text-neutral-500 mt-0.5">Track labor, simply</p>
-                </div>
+              <div>
+                <h1 class="text-lg font-bold tracking-tight leading-none">Contraction Timer</h1>
+                <p class="text-xs text-neutral-500 mt-0.5">Track labor, simply</p>
               </div>
               <div class="flex items-center">
                 <button title="Add a contraction" onClick=${this.openAdd} class="grid place-items-center h-10 w-9 rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"><i class="iconoir-plus text-xl"></i></button>
