@@ -436,7 +436,7 @@ class App extends Component {
     const e = this.state.edit;
     const up = (k) => (ev) => this.setEdit({ [k]: ev.target.value });
     return html`<${Modal} z="z-30" onClose=${this.closeEdit}>
-      <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
+      <div class=${PANEL + ' p-6 max-h-[85vh] overflow-y-auto'} style=${PANEL_PAD}>
         <div class="flex items-center justify-between mb-5">
           <h3 class="text-base font-bold tracking-tight">${e.isNew ? 'Add contraction' : 'Edit contraction'}</h3>
           <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="xmark" class="text-xl" /></button>
@@ -500,12 +500,12 @@ class App extends Component {
   renderSettings() {
     const n = this.state.archives.length;
     return html`<${Modal} z="z-40" onClose=${() => this.setState({ modal: null })}>
-      <div class=${PANEL + ' p-6'} style=${PANEL_PAD}>
-        <div class="flex items-center justify-between mb-4">
+      <div class=${PANEL + ' flex flex-col max-h-[85vh]'}>
+        <div class="flex items-center justify-between p-6 pb-3 shrink-0">
           <h3 class="text-base font-bold tracking-tight">Settings</h3>
           <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="xmark" class="text-xl" /></button>
         </div>
-        <div class="space-y-2">
+        <div class="space-y-2 overflow-y-auto px-6 pb-6" style=${PANEL_PAD}>
           <${SettingsRow} icon="half-moon" title="Dark mode" sub=${this.state.theme === 'dark' ? 'On' : 'Off'} onClick=${this.toggleTheme} />
           <${SettingsRow} icon="upload" title="Export data" sub="Save a backup file or share it" onClick=${this.exportData} />
           <${SettingsRow} icon="copy" title="Copy summary" sub=${this.state.copied ? 'Copied!' : 'For pasting into Sheets or a message'} onClick=${this.copySummary} />
