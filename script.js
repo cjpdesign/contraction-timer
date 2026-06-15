@@ -5,7 +5,7 @@ const STORE_KEY = 'contraction-timer.v1';
 const HOUR = 60 * 60 * 1000;
 
 const LEVELS = {
-  1: { label: 'Mild',     fill: 'bg-amber-500 border-amber-500',   ring: 'ring-amber-400',   icon: 'emoji-look-up' },
+  1: { label: 'Mild',     fill: 'bg-teal-500 border-teal-500',     ring: 'ring-teal-400',    icon: 'emoji-look-up' },
   2: { label: 'Moderate', fill: 'bg-orange-500 border-orange-500', ring: 'ring-orange-500',  icon: 'emoji-really' },
   3: { label: 'Strong',   fill: 'bg-red-600 border-red-600',       ring: 'ring-red-500',     icon: 'emoji-sad' },
 };

@@ -23,7 +23,7 @@ module.exports = {
   },
   // Classes built dynamically in JS (LEVELS colors, met-bar) so the purge keeps them.
   safelist: [
-    'bg-amber-500', 'border-amber-500', 'ring-amber-400',
+    'bg-teal-500', 'border-teal-500', 'ring-teal-400',
     'bg-orange-500', 'border-orange-500', 'ring-orange-500',
     'bg-red-600', 'border-red-600', 'ring-red-500',
     'bg-emerald-500',
