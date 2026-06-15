@@ -2,7 +2,7 @@
  *   npx tailwindcss@3 -i ./src.css -o ./styles.css --minify
  */
 module.exports = {
-  content: ['./index.html'],
+  content: ['./index.html', './script.js'],
   theme: {
     extend: {
       fontFamily: { sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'] },
