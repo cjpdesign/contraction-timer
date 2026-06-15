@@ -1,4 +1,4 @@
-import { html, Component, render } from 'https://unpkg.com/htm@3.1.1/preact/standalone.module.js';
+import { html, Component, render } from './preact.js';   // vendored htm@3.1.1/preact/standalone
 
 // ---- Constants ----
 const STORE_KEY = 'contraction-timer.v1';
