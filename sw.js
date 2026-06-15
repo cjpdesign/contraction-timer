@@ -2,7 +2,7 @@
  * Strategy: network-first for the page (so updates show when online),
  * cache-first for everything else (local assets + version-pinned CDN libs).
  * Bump CACHE to force a full re-cache of all assets. */
-const CACHE = 'contraction-timer-v3';
+const CACHE = 'contraction-timer-v4';
 const SHELL = ['./', './index.html', './styles.css', './manifest.webmanifest', './logo.png'];
 
 self.addEventListener('install', (e) => {

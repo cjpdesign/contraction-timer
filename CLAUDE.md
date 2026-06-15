@@ -12,7 +12,9 @@ To run it: open `index.html` in a browser, or serve the folder (`python3 -m http
 
 **PWA / offline:** `sw.js` is network-first for the page (updates show when online) and cache-first for assets (local + the version-pinned CDN libs), so after one online load the app works fully offline and is installable. Bump the `CACHE` constant in `sw.js` to force a full re-cache. Because navigation is network-first, editing `index.html` is picked up automatically when online — no version bump needed for content changes.
 
-Remaining runtime CDN dependencies: the Iconoir icon font (jsDelivr), Inter (Google Fonts), and the Preact+htm module (unpkg). The app needs network on first load to fetch these (the service worker caches them afterward for offline use).
+Remaining runtime CDN dependencies: Inter (Google Fonts) and the Preact+htm module (unpkg). The app needs network on first load to fetch these (the service worker caches them afterward for offline use).
+
+**Icons are self-hosted inline SVGs** (the Iconoir CSS was a 2.9MB CDN file for the ~18 icons we use). They live in the `ICONS` map (name → inner SVG markup, from Iconoir's `icons/regular/*.svg`) and render via the `Icon({ name, class })` component: an `<svg width="1em" height="1em">` whose paths use `stroke="currentColor"`, so **size follows `font-size` (`text-xl` etc.) and color follows `text-*`** — same as the old `<i>` tags. To add an icon, drop its inner SVG into `ICONS` and reference the name. Gotcha: Tailwind Preflight sets `svg { display:block }`, so an icon centered by `text-center` needs `mx-auto` instead (icons inside `grid place-items-center`/flex parents are unaffected).
 
 ## Architecture
 
