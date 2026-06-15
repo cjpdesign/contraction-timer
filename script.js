@@ -506,6 +506,7 @@ class App extends Component {
           <button onClick=${() => this.setState({ modal: null })} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="xmark" class="text-xl" /></button>
         </div>
         <div class="space-y-2">
+          <${SettingsRow} icon="half-moon" title="Dark mode" sub=${this.state.theme === 'dark' ? 'On' : 'Off'} onClick=${this.toggleTheme} />
           <${SettingsRow} icon="upload" title="Export data" sub="Save a backup file or share it" onClick=${this.exportData} />
           <${SettingsRow} icon="copy" title="Copy summary" sub=${this.state.copied ? 'Copied!' : 'For pasting into Sheets or a message'} onClick=${this.copySummary} />
           <${SettingsRow} icon="download" title="Import data" sub="Restore from a backup file" onClick=${() => this.fileInput && this.fileInput.click()} />
@@ -598,7 +599,6 @@ class App extends Component {
             <p class="text-xs text-muted mt-0.5">Track labor, simply</p>
           </div>
           <div class="flex items-center">
-            <button title="Toggle light/dark" aria-label="Toggle light or dark theme" onClick=${this.toggleTheme} class="grid place-items-center h-10 w-9 rounded-xl text-muted hover:text-ink hover:bg-surface transition"><${Icon} name=${this.state.theme === 'dark' ? 'sun-light' : 'half-moon'} class="text-xl" /></button>
             <button title="Add a contraction" onClick=${this.openAdd} class="grid place-items-center h-10 w-9 rounded-xl text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="plus" class="text-xl" /></button>
             <button title="Settings" onClick=${() => this.setState({ modal: 'settings' })} class="grid place-items-center h-10 w-9 rounded-xl text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="settings" class="text-xl" /></button>
           </div>
