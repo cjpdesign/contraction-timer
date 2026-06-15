@@ -436,13 +436,14 @@ class App extends Component {
     const e = this.state.edit;
     const up = (k) => (ev) => this.setEdit({ [k]: ev.target.value });
     return html`<${Modal} z="z-30" onClose=${this.closeEdit}>
-      <div class=${PANEL + ' p-6 max-h-[85vh] overflow-y-auto'} style=${PANEL_PAD}>
-        <div class="flex items-center justify-between mb-5">
+      <div class=${PANEL + ' flex flex-col max-h-[85vh]'}>
+        <div class="flex items-center justify-between p-6 pb-3 shrink-0">
           <h3 class="text-base font-bold tracking-tight">${e.isNew ? 'Add contraction' : 'Edit contraction'}</h3>
           <button onClick=${this.closeEdit} class="grid place-items-center h-9 w-9 rounded-lg text-muted hover:text-ink hover:bg-surface transition"><${Icon} name="xmark" class="text-xl" /></button>
         </div>
 
-        <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3 mb-3">
+        <div class="overflow-y-auto px-6 space-y-3">
+        <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3">
           <div>
             <div class="flex items-center justify-between mb-1.5">
               <label class="text-xs font-medium text-muted">Date</label>
@@ -467,7 +468,7 @@ class App extends Component {
           </div>
         </div>
 
-        <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3 mb-6">
+        <div class="rounded-2xl border border-line/70 bg-surface p-4 space-y-3">
           <div>
             <label class="block text-xs font-medium text-muted mb-1.5">Duration</label>
             <div class="flex items-center gap-2">
@@ -491,8 +492,11 @@ class App extends Component {
             </div>
           </div>
         </div>
+        </div>
 
-        <button onClick=${this.saveEdit} class=${'w-full ' + BTN_PRIMARY}>${e.isNew ? 'Add contraction' : 'Save changes'}</button>
+        <div class="px-6 pt-3 shrink-0" style=${PANEL_PAD}>
+          <button onClick=${this.saveEdit} class=${'w-full ' + BTN_PRIMARY}>${e.isNew ? 'Add contraction' : 'Save changes'}</button>
+        </div>
       </div>
     <//>`;
   }
