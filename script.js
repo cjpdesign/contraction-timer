@@ -373,7 +373,7 @@ class App extends Component {
         <div class="tnum text-base sm:text-xl font-bold mt-0.5 whitespace-nowrap">${value}</div>
         <div class="mt-3">
           <div class="h-1.5 rounded-full bg-track overflow-hidden">
-            <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-emerald-500' : 'bg-body')} style=${'width:' + pct + '%'}></div>
+            <div class=${'h-full rounded-full transition-all duration-500 ' + (met ? 'bg-teal-500' : 'bg-body')} style=${'width:' + pct + '%'}></div>
           </div>
           <div class="text-[10px] text-muted leading-tight mt-1.5">${hint}</div>
         </div>
