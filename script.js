@@ -592,7 +592,7 @@ class App extends Component {
     const timing = activeStart != null;
 
     return [
-      html`<div class="mx-auto max-w-md px-4 pb-28 pt-6 space-y-6">
+      html`<div class="mx-auto max-w-md px-4 pt-6 space-y-6" style="padding-bottom: calc(7rem + env(safe-area-inset-bottom))">
         <header class="flex items-center justify-between">
           <div>
             <h1 class="text-lg font-bold tracking-tight leading-none">Contraction Timer</h1>
